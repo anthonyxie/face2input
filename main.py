@@ -1,25 +1,32 @@
 from cmath import pi
-from turtle import width
+import pyautogui
 import keyboard
 import cv2
 import dlib
-import imutils
-from imutils import face_utils
 import math
 
 detector = dlib.get_frontal_face_detector()
 
 
-MOUTH_AR_THRESH = 0.22
+MOUTH_AR_THRESH = 0.17
 EYE_AR_THRESH = 0.13
 TILT_AR_THRESH = 79
-EYE_AR_CONSEC_FRAMES = 3
+EYE_AR_CONSEC_FRAMES = 4
 COUNTERLEFT = 0
 COUNTERRIGHT = 0
 COUNTERMOUTH = 0
 TOTALMOUTH = 0
 TOTALLEFT = 0
 TOTALRIGHT = 0 
+BOXHORIZONTAL = 100
+BOXVERTICAL = 60
+
+DASH = "q"
+JUMP = "e"
+UP = "["
+DOWN = "]"
+LEFT = ";"
+RIGHT = "'"
 
 def angle_calc(land1, land2):
     x = ((land1.x - land2.x)**2)**(1/2) + 0.005
@@ -64,7 +71,20 @@ while True:
         # Create landmark object
         landmarks = predictor(image=gray, box=face)
 
-        
+ 
+        faceposX = 0
+        faceposY = 0
+        # Loop through all the points
+        for n in range(0, 68):
+            x = landmarks.part(n).x
+            y = landmarks.part(n).y
+
+            # Draw a circle
+            cv2.circle(img=frame, center=(x, y), radius=3, color=(0, 255, 0), thickness=-1)
+            if n == 28:
+                faceposX = x
+                faceposY = y
+           
         earright = eye_aspect_ratio([landmarks.part(42), landmarks.part(43), landmarks.part(44), landmarks.part(45), landmarks.part(46), landmarks.part(47)])
         earmouth = eye_aspect_ratio([landmarks.part(60), landmarks.part(61), landmarks.part(63), landmarks.part(64), landmarks.part(65), landmarks.part(67)])
 
@@ -81,7 +101,7 @@ while True:
         else:
             if COUNTERRIGHT >= EYE_AR_CONSEC_FRAMES:
                 TOTALRIGHT += 1
-                #keyboard.send("r")
+                pyautogui.write(DASH)
                 print("blink")
 			# reset the eye frame counter
                 COUNTERRIGHT = 0
@@ -91,28 +111,50 @@ while True:
         else:
             if COUNTERMOUTH >= EYE_AR_CONSEC_FRAMES:
                 TOTALMOUTH += 1
-                #keyboard.send("m")
+                pyautogui.write(JUMP)
                 print("m")
 			# reset the eye frame counter
                 COUNTERMOUTH = 0
     
         if headtilt < TILT_AR_THRESH:
-            #keyboard.press("u")
+            pyautogui.keyDown("t")
         else:
-            #if keyboard.is_pressed("u"):
-                #keyboard.release("u")
+            if keyboard.is_pressed("t"):
+                pyautogui.keyUp("t")
+
+        #is head in the neutral zone
+        if 320 - BOXHORIZONTAL <=  faceposX <= 320 + BOXHORIZONTAL and 240 - BOXVERTICAL <=  faceposY <= 240 + BOXVERTICAL:
+            if keyboard.is_pressed("["):
+                pyautogui.keyUp("[")
+            if keyboard.is_pressed("]"):
+                pyautogui.keyUp("]")
+            if keyboard.is_pressed(";"):
+                pyautogui.keyUp(";")
+            if keyboard.is_pressed("'"):
+                pyautogui.keyUp("'")
+        
+            #head in left
+        if not keyboard.is_pressed("`"):
+            if faceposX < 320 - BOXHORIZONTAL:
+                pyautogui.keyDown(";")
+                print("left")
+            #head in right
+            if faceposX > 320 + BOXHORIZONTAL:
+                pyautogui.keyDown("'")
+                print("right")
+            #head in up
+            if faceposY < 240 - BOXVERTICAL:
+                pyautogui.keyDown("[")
+                print("up")
+            #head in down
+            if faceposY > 240 + BOXVERTICAL:
+                pyautogui.keyDown("]")
+                print("down")
+        
         
         cv2.putText(frame, "TOTALBLINK: {:.2f}".format(TOTALRIGHT), (10, 170), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
         cv2.putText(frame, "TOTALMOUTH: {:.2f}".format(TOTALMOUTH), (100, 300), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-
-        # Loop through all the points
-        for n in range(0, 68):
-            x = landmarks.part(n).x
-            y = landmarks.part(n).y
-
-            # Draw a circle
-            cv2.circle(img=frame, center=(x, y), radius=3, color=(0, 255, 0), thickness=-1)
-
+        
 
     # show the image
     cv2.imshow(winname="Face", mat=frame)
