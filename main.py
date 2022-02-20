@@ -1,4 +1,5 @@
 from cmath import pi
+from telnetlib import DO
 import pyautogui
 import keyboard
 import cv2
@@ -21,12 +22,15 @@ TOTALRIGHT = 0
 BOXHORIZONTAL = 100
 BOXVERTICAL = 60
 
+minecraft = {'up': "w" , 'down': "s", 'left': "a", 'right': "d" }
+celeste  = {'up': "up", 'down': "down", 'left': "left", 'right':"right"}
+hollowknight = {'up': "up", 'down': "down", 'left': "left", 'right':"right"}
 DASH = "q"
-JUMP = "e"
-UP = "["
-DOWN = "]"
-LEFT = ";"
-RIGHT = "'"
+JUMP = "space"
+UP = minecraft["up"]
+DOWN = minecraft["down"]
+LEFT = minecraft["left"]
+RIGHT = minecraft["right"]
 
 def angle_calc(land1, land2):
     x = ((land1.x - land2.x)**2)**(1/2) + 0.005
@@ -101,7 +105,7 @@ while True:
         else:
             if COUNTERRIGHT >= EYE_AR_CONSEC_FRAMES:
                 TOTALRIGHT += 1
-                pyautogui.write(DASH)
+                pyautogui.press(DASH)
                 print("blink")
 			# reset the eye frame counter
                 COUNTERRIGHT = 0
@@ -111,7 +115,7 @@ while True:
         else:
             if COUNTERMOUTH >= EYE_AR_CONSEC_FRAMES:
                 TOTALMOUTH += 1
-                pyautogui.write(JUMP)
+                pyautogui.press(JUMP)
                 print("m")
 			# reset the eye frame counter
                 COUNTERMOUTH = 0
@@ -124,31 +128,31 @@ while True:
 
         #is head in the neutral zone
         if 320 - BOXHORIZONTAL <=  faceposX <= 320 + BOXHORIZONTAL and 240 - BOXVERTICAL <=  faceposY <= 240 + BOXVERTICAL:
-            if keyboard.is_pressed("["):
-                pyautogui.keyUp("[")
-            if keyboard.is_pressed("]"):
-                pyautogui.keyUp("]")
-            if keyboard.is_pressed(";"):
-                pyautogui.keyUp(";")
-            if keyboard.is_pressed("'"):
-                pyautogui.keyUp("'")
+            if keyboard.is_pressed(UP):
+                pyautogui.keyUp(UP)
+            if keyboard.is_pressed(DOWN):
+                pyautogui.keyUp(DOWN)
+            if keyboard.is_pressed(LEFT):
+                pyautogui.keyUp(LEFT)
+            if keyboard.is_pressed(RIGHT):
+                pyautogui.keyUp(RIGHT)
         
             #head in left
         if not keyboard.is_pressed("`"):
             if faceposX < 320 - BOXHORIZONTAL:
-                pyautogui.keyDown(";")
+                pyautogui.keyDown(LEFT)
                 print("left")
             #head in right
             if faceposX > 320 + BOXHORIZONTAL:
-                pyautogui.keyDown("'")
+                pyautogui.keyDown(RIGHT)
                 print("right")
             #head in up
             if faceposY < 240 - BOXVERTICAL:
-                pyautogui.keyDown("[")
+                pyautogui.keyDown(UP)
                 print("up")
             #head in down
             if faceposY > 240 + BOXVERTICAL:
-                pyautogui.keyDown("]")
+                pyautogui.keyDown(DOWN)
                 print("down")
         
         
