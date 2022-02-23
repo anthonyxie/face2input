@@ -1,32 +1,38 @@
 from cmath import pi
 from telnetlib import DO
+from tkinter import HORIZONTAL
 import pyautogui
+import pydirectinput
 import keyboard
 import cv2
 import dlib
 import math
-
+import time 
 detector = dlib.get_frontal_face_detector()
 
 
-MOUTH_AR_THRESH = 0.17
-EYE_AR_THRESH = 0.13
-TILT_AR_THRESH = 79
-EYE_AR_CONSEC_FRAMES = 4
+MOUTH_AR_THRESH = 0.1
+EYE_AR_THRESH = 0.15
+TILT_AR_THRESH = 76
+EYE_AR_CONSEC_FRAMES = 2
 COUNTERLEFT = 0
 COUNTERRIGHT = 0
 COUNTERMOUTH = 0
 TOTALMOUTH = 0
 TOTALLEFT = 0
 TOTALRIGHT = 0 
-BOXHORIZONTAL = 100
-BOXVERTICAL = 60
+BOXHORIZONTAL = 70
+BOXVERTICAL = 45
 
-minecraft = {'up': "w" , 'down': "s", 'left': "a", 'right': "d" }
-celeste  = {'up': "up", 'down': "down", 'left': "left", 'right':"right"}
+pydirectinput.PAUSE = 0
+pyautogui.PAUSE = 0
+
+minecraft = {'up': "w" , 'down': "s", 'left': "a", 'right': "d", "jump": "space"}
+celeste  = {'up': "[", 'down': "]", 'left': ";", 'right':"'", "dash":"x" ,"jump":"c", "grab":"t"}
 hollowknight = {'up': "up", 'down': "down", 'left': "left", 'right':"right"}
-DASH = "q"
-JUMP = "space"
+DASH = celeste["dash"]
+JUMP = minecraft["jump"]
+GRAB = celeste["grab"]
 UP = minecraft["up"]
 DOWN = minecraft["down"]
 LEFT = minecraft["left"]
@@ -56,7 +62,7 @@ def eye_aspect_ratio(eye):
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
 
 # read the image
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 while True:
     _, frame = cap.read()
@@ -64,7 +70,7 @@ while True:
     gray = cv2.cvtColor(src=frame, code=cv2.COLOR_BGR2GRAY)
     # Use detector to find landmarks
     faces = detector(gray)
-
+    
 
     for face in faces:
         x1 = face.left()  # left point
@@ -73,8 +79,10 @@ while True:
         y2 = face.bottom()  # bottom point
 
         # Create landmark object
-        landmarks = predictor(image=gray, box=face)
 
+        landmarks = predictor(image=gray, box=face)
+        cv2.rectangle(frame, (320 - BOXHORIZONTAL,0), (320 + BOXHORIZONTAL, 480), (0,255,0), 1)
+        cv2.rectangle(frame, (0,240 - BOXVERTICAL), (640, 240 + BOXVERTICAL), (0,255,0), 1)
  
         faceposX = 0
         faceposY = 0
@@ -84,8 +92,8 @@ while True:
             y = landmarks.part(n).y
 
             # Draw a circle
-            cv2.circle(img=frame, center=(x, y), radius=3, color=(0, 255, 0), thickness=-1)
             if n == 28:
+                cv2.circle(img=frame, center=(x, y), radius=3, color=(0, 255, 0), thickness=-1)
                 faceposX = x
                 faceposY = y
            
@@ -94,70 +102,58 @@ while True:
 
         headtilt = angle_calc(landmarks.part(27), landmarks.part(8))
 
-        cv2.putText(frame, "EARRIGHT: {:.2f}".format(earright), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
-        cv2.putText(frame, "HEADTILT: {:.2f}".format(headtilt), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-        cv2.putText(frame, "EARMOUTH: {:.2f}".format(earmouth), (300, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        if not keyboard.is_pressed("/"):        
+            if earright < EYE_AR_THRESH:
+                pydirectinput.keyDown(DASH)
+                COUNTERRIGHT += 1
+            else:
+                if COUNTERRIGHT >= EYE_AR_CONSEC_FRAMES:
+                    pydirectinput.keyUp(DASH)
+                    COUNTERRIGHT = 0
 
-                
-        if earright < EYE_AR_THRESH:
-            COUNTERRIGHT += 1
-        else:
-            if COUNTERRIGHT >= EYE_AR_CONSEC_FRAMES:
-                TOTALRIGHT += 1
-                pyautogui.press(DASH)
-                print("blink")
-			# reset the eye frame counter
-                COUNTERRIGHT = 0
-
-        if earmouth > MOUTH_AR_THRESH:
-            COUNTERMOUTH += 1
-        else:
-            if COUNTERMOUTH >= EYE_AR_CONSEC_FRAMES:
-                TOTALMOUTH += 1
-                pyautogui.press(JUMP)
-                print("m")
-			# reset the eye frame counter
-                COUNTERMOUTH = 0
-    
-        if headtilt < TILT_AR_THRESH:
-            pyautogui.keyDown("t")
-        else:
-            if keyboard.is_pressed("t"):
-                pyautogui.keyUp("t")
+            if earmouth > MOUTH_AR_THRESH:
+                pydirectinput.keyDown(JUMP)
+                COUNTERMOUTH += 1
+            else:
+                if COUNTERMOUTH > EYE_AR_CONSEC_FRAMES:
+                    TOTALMOUTH += 1    
+                    COUNTERMOUTH = 0
+                    pydirectinput.keyUp(JUMP)
+        
+            if headtilt < TILT_AR_THRESH:
+                pydirectinput.keyDown(GRAB)
+            else:
+                if keyboard.is_pressed(GRAB):
+                    pydirectinput.keyUp(GRAB)
 
         #is head in the neutral zone
         if 320 - BOXHORIZONTAL <=  faceposX <= 320 + BOXHORIZONTAL and 240 - BOXVERTICAL <=  faceposY <= 240 + BOXVERTICAL:
             if keyboard.is_pressed(UP):
-                pyautogui.keyUp(UP)
+                pydirectinput.keyUp(UP)
             if keyboard.is_pressed(DOWN):
-                pyautogui.keyUp(DOWN)
+                pydirectinput.keyUp(DOWN)
             if keyboard.is_pressed(LEFT):
-                pyautogui.keyUp(LEFT)
+                pydirectinput.keyUp(LEFT)
             if keyboard.is_pressed(RIGHT):
-                pyautogui.keyUp(RIGHT)
+                pydirectinput.keyUp(RIGHT)
         
             #head in left
-        if not keyboard.is_pressed("`"):
+        if not keyboard.is_pressed("/"):
             if faceposX < 320 - BOXHORIZONTAL:
-                pyautogui.keyDown(LEFT)
-                print("left")
+                pydirectinput.keyDown(LEFT)
             #head in right
             if faceposX > 320 + BOXHORIZONTAL:
-                pyautogui.keyDown(RIGHT)
-                print("right")
+                pydirectinput.keyDown(RIGHT)
             #head in up
             if faceposY < 240 - BOXVERTICAL:
-                pyautogui.keyDown(UP)
-                print("up")
+                pydirectinput.keyDown(UP)
             #head in down
             if faceposY > 240 + BOXVERTICAL:
-                pyautogui.keyDown(DOWN)
-                print("down")
+                pydirectinput.keyDown(DOWN)
         
         
-        cv2.putText(frame, "TOTALBLINK: {:.2f}".format(TOTALRIGHT), (10, 170), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-        cv2.putText(frame, "TOTALMOUTH: {:.2f}".format(TOTALMOUTH), (100, 300), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+
         
 
     # show the image
